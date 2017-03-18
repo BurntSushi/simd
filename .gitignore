@@ -1,3 +1,4 @@
 perf.data*
 /target
 Cargo.lock
+tags

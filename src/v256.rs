@@ -1,16 +1,14 @@
 #![allow(dead_code)]
+
 use std::ops;
-use std::mem;
+
+use SS;
+
 #[allow(unused_imports)]
 use super::{
 	Simd,
     u32x4, i32x4, u16x8, i16x8, u8x16, i8x16, f32x4,
     bool32ix4, bool16ix8, bool8ix16, bool32fx4,
-    simd_eq, simd_ne, simd_lt, simd_le, simd_gt, simd_ge,
-    simd_shuffle2, simd_shuffle4, simd_shuffle8, simd_shuffle16,
-    simd_insert, simd_extract,
-    simd_cast,
-    simd_add, simd_sub, simd_mul, simd_div, simd_shl, simd_shr, simd_and, simd_or, simd_xor,
     bool8i, bool16i, bool32i, bool32f,
     Unalign, bitcast,
 };
@@ -18,89 +16,57 @@ use super::sixty_four::*;
 #[cfg(all(target_feature = "avx"))]
 use super::x86::avx::common;
 
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct u64x4(u64, u64, u64, u64);
-#[repr(simd)]
+pub struct u64x4(SS::u64x4);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct i64x4(i64, i64, i64, i64);
-#[repr(simd)]
+pub struct i64x4(SS::i64x4);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct f64x4(f64, f64, f64, f64);
-#[repr(simd)]
+pub struct f64x4(SS::f64x4);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool64ix4(i64, i64, i64, i64);
-#[repr(simd)]
+pub struct bool64ix4(SS::i64x4);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool64fx4(i64, i64, i64, i64);
+pub struct bool64fx4(SS::i64x4);
 
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct u32x8(u32, u32, u32, u32,
-                 u32, u32, u32, u32);
-#[repr(simd)]
+pub struct u32x8(SS::u32x8);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct i32x8(i32, i32, i32, i32,
-                 i32, i32, i32, i32);
-#[repr(simd)]
+pub struct i32x8(SS::i32x8);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct f32x8(f32, f32, f32, f32,
-                 f32, f32, f32, f32);
-#[repr(simd)]
+pub struct f32x8(SS::f32x8);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool32ix8(i32, i32, i32, i32,
-                     i32, i32, i32, i32);#[repr(simd)]
+pub struct bool32ix8(SS::i32x8);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool32fx8(i32, i32, i32, i32,
-                     i32, i32, i32, i32);
+pub struct bool32fx8(SS::i32x8);
 
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct u16x16(u16, u16, u16, u16, u16, u16, u16, u16,
-                  u16, u16, u16, u16, u16, u16, u16, u16);
-#[repr(simd)]
+pub struct u16x16(SS::u16x16);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct i16x16(i16, i16, i16, i16, i16, i16, i16, i16,
-                  i16, i16, i16, i16, i16, i16, i16, i16);
-#[repr(simd)]
+pub struct i16x16(SS::i16x16);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool16ix16(i16, i16, i16, i16, i16, i16, i16, i16,
-                      i16, i16, i16, i16, i16, i16, i16, i16);
+pub struct bool16ix16(SS::i16x16);
 
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct u8x32(u8, u8, u8, u8, u8, u8, u8, u8,
-                 u8, u8, u8, u8, u8, u8, u8, u8,
-                 u8, u8, u8, u8, u8, u8, u8, u8,
-                 u8, u8, u8, u8, u8, u8, u8, u8);
-#[repr(simd)]
+pub struct u8x32(SS::u8x32);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct i8x32(i8, i8, i8, i8, i8, i8, i8, i8,
-                 i8, i8, i8, i8, i8, i8, i8, i8,
-                 i8, i8, i8, i8, i8, i8, i8, i8,
-                 i8, i8, i8, i8, i8, i8, i8, i8);
-#[repr(simd)]
+pub struct i8x32(SS::i8x32);
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool8ix32(i8, i8, i8, i8, i8, i8, i8, i8,
-                     i8, i8, i8, i8, i8, i8, i8, i8,
-                     i8, i8, i8, i8, i8, i8, i8, i8,
-                     i8, i8, i8, i8, i8, i8, i8, i8);
+pub struct bool8ix32(SS::i8x32);
 
 simd! {
     bool8ix32: i8x32 = i8, u8x32 = u8, bool8ix32 = bool8i;
@@ -113,20 +79,20 @@ simd! {
 }
 
 basic_impls! {
-    u64x4: u64, bool64ix4, simd_shuffle4, 4, x0, x1 | x2, x3;
-    i64x4: i64, bool64ix4, simd_shuffle4, 4, x0, x1 | x2, x3;
-    f64x4: f64, bool64fx4, simd_shuffle4, 4, x0, x1 | x2, x3;
+    u64x4: u64, bool64ix4, 4, x0, x1 | x2, x3;
+    i64x4: i64, bool64ix4, 4, x0, x1 | x2, x3;
+    f64x4: f64, bool64fx4, 4, x0, x1 | x2, x3;
 
-    u32x8: u32, bool32ix8, simd_shuffle8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
-    i32x8: i32, bool32ix8, simd_shuffle8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
-    f32x8: f32, bool32fx8, simd_shuffle8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
+    u32x8: u32, bool32ix8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
+    i32x8: i32, bool32ix8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
+    f32x8: f32, bool32fx8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
 
-    u16x16: u16, bool16ix16, simd_shuffle16, 16, x0, x1, x2, x3, x4, x5, x6, x7 | x8, x9, x10, x11, x12, x13, x14, x15;
-    i16x16: i16, bool16ix16, simd_shuffle16, 16, x0, x1, x2, x3, x4, x5, x6, x7 | x8, x9, x10, x11, x12, x13, x14, x15;
+    u16x16: u16, bool16ix16, 16, x0, x1, x2, x3, x4, x5, x6, x7 | x8, x9, x10, x11, x12, x13, x14, x15;
+    i16x16: i16, bool16ix16, 16, x0, x1, x2, x3, x4, x5, x6, x7 | x8, x9, x10, x11, x12, x13, x14, x15;
 
-    u8x32: u8, bool8ix32, simd_shuffle32, 32, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 |
+    u8x32: u8, bool8ix32, 32, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 |
         x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31;
-    i8x32: i8, bool8ix32, simd_shuffle32, 32, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 |
+    i8x32: i8, bool8ix32, 32, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 |
         x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31;
 }
 
@@ -146,7 +112,7 @@ mod common {
                 pub fn $any(x: $ty) -> bool {
                     x.low().any() || x.high().any()
                 }
-                )*
+            )*
         }
     }
 
@@ -203,12 +169,12 @@ macro_rules! low_high_impls {
             type Half = $half;
             #[inline]
             fn low(self) -> Self::Half {
-                $half::new($( expr!(self.$first), )*)
+                $half::new($( expr!(self.extract($first)), )*)
             }
 
             #[inline]
             fn high(self) -> Self::Half {
-                $half::new($( expr!(self.$last), )*)
+                $half::new($( expr!(self.extract($last)), )*)
             }
         })*
     }
@@ -268,12 +234,12 @@ impl u64x4 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i64(self) -> i64x4 {
-        unsafe {simd_cast(self)}
+        i64x4(self.0.as_i64x4())
     }
     /// Convert each lane to a 64-bit float.
     #[inline]
     pub fn to_f64(self) -> f64x4 {
-        unsafe {simd_cast(self)}
+        f64x4(self.0.as_f64x4())
     }
 }
 
@@ -281,12 +247,12 @@ impl i64x4 {
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u64(self) -> u64x4 {
-        unsafe {simd_cast(self)}
+        u64x4(self.0.as_u64x4())
     }
     /// Convert each lane to a 64-bit float.
     #[inline]
     pub fn to_f64(self) -> f64x4 {
-        unsafe {simd_cast(self)}
+        f64x4(self.0.as_f64x4())
     }
 }
 
@@ -294,12 +260,12 @@ impl f64x4 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i64(self) -> i64x4 {
-        unsafe {simd_cast(self)}
+        i64x4(self.0.as_i64x4())
     }
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u64(self) -> u64x4 {
-        unsafe {simd_cast(self)}
+        u64x4(self.0.as_u64x4())
     }
 }
 
@@ -307,12 +273,12 @@ impl u32x8 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i32(self) -> i32x8 {
-        unsafe {simd_cast(self)}
+        i32x8(self.0.as_i32x8())
     }
     /// Convert each lane to a 32-bit float.
     #[inline]
     pub fn to_f32(self) -> f32x8 {
-        unsafe {simd_cast(self)}
+        f32x8(self.0.as_f32x8())
     }
 }
 
@@ -320,12 +286,12 @@ impl i32x8 {
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u32(self) -> u32x8 {
-        unsafe {simd_cast(self)}
+        u32x8(self.0.as_u32x8())
     }
     /// Convert each lane to a 32-bit float.
     #[inline]
     pub fn to_f32(self) -> f32x8 {
-        unsafe {simd_cast(self)}
+        f32x8(self.0.as_f32x8())
     }
 }
 
@@ -333,12 +299,12 @@ impl f32x8 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i32(self) -> i32x8 {
-        unsafe {simd_cast(self)}
+        i32x8(self.0.as_i32x8())
     }
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u32(self) -> u32x8 {
-        unsafe {simd_cast(self)}
+        u32x8(self.0.as_u32x8())
     }
 }
 
@@ -346,7 +312,7 @@ impl i16x16 {
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u16(self) -> u16x16 {
-        unsafe {simd_cast(self)}
+        u16x16(self.0.as_u16x16())
     }
 }
 
@@ -354,7 +320,7 @@ impl u16x16 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i16(self) -> i16x16 {
-        unsafe {simd_cast(self)}
+        i16x16(self.0.as_i16x16())
     }
 }
 
@@ -362,7 +328,7 @@ impl i8x32 {
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u8(self) -> u8x32 {
-        unsafe {simd_cast(self)}
+        u8x32(self.0.as_u8x32())
     }
 }
 
@@ -370,31 +336,31 @@ impl u8x32 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i8(self) -> i8x32 {
-        unsafe {simd_cast(self)}
+        i8x32(self.0.as_i8x32())
     }
 }
 
 operators! {
-    Add (simd_add, add):
+    Add (add):
         i8x32, u8x32, i16x16, u16x16, i32x8, u32x8, i64x4, u64x4,
         f64x4, f32x8;
-    Sub (simd_sub, sub):
+    Sub (sub):
         i8x32, u8x32, i16x16, u16x16, i32x8, u32x8, i64x4, u64x4,
         f64x4, f32x8;
-    Mul (simd_mul, mul):
+    Mul (mul):
         i8x32, u8x32, i16x16, u16x16, i32x8, u32x8, i64x4, u64x4,
         f64x4, f32x8;
-    Div (simd_div, div): f64x4, f32x8;
+    Div (div): f64x4, f32x8;
 
-    BitAnd (simd_and, bitand):
+    BitAnd (bitand):
         i8x32, u8x32, i16x16, u16x16, i32x8, u32x8, i64x4, u64x4,
         bool64ix4, bool32ix8, bool16ix16,
         bool64fx4, bool32fx8;
-    BitOr (simd_or, bitor):
+    BitOr (bitor):
         i8x32, u8x32, i16x16, u16x16, i32x8, u32x8, i64x4, u64x4,
         bool64ix4, bool32ix8, bool16ix16,
         bool64fx4, bool32fx8;
-    BitXor (simd_xor, bitxor):
+    BitXor (bitxor):
         i8x32, u8x32, i16x16, u16x16, i32x8, u32x8, i64x4, u64x4,
         bool64ix4, bool32ix8, bool16ix16,
         bool64fx4, bool32fx8;

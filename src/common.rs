@@ -1,15 +1,6 @@
 use super::*;
 #[allow(unused_imports)]
-use super::{
-    simd_eq, simd_ne, simd_lt, simd_le, simd_gt, simd_ge,
-    simd_shuffle2, simd_shuffle4, simd_shuffle8, simd_shuffle16,
-    simd_insert, simd_extract,
-    simd_cast,
-    simd_add, simd_sub, simd_mul, simd_div, simd_shl, simd_shr, simd_and, simd_or, simd_xor,
-
-    Unalign, bitcast,
-};
-use std::mem;
+use super::bitcast;
 use std::ops;
 
 #[cfg(any(target_arch = "x86",
@@ -23,51 +14,50 @@ use aarch64::neon::common;
 macro_rules! basic_impls {
     ($(
         $name: ident:
-        $elem: ident, $bool: ident, $shuffle: ident, $length: expr, $($first: ident),* | $($last: ident),*;
+        $elem: ident, $bool: ident, $length: expr, $($first: ident),* | $($last: ident),*;
         )*) => {
         $(impl $name {
             /// Create a new instance.
             #[inline]
-            pub const fn new($($first: $elem),*, $($last: $elem),*) -> $name {
-                $name($($first),*, $($last),*)
+            pub fn new($($first: $elem),*, $($last: $elem),*) -> $name {
+                $name(SS::$name::new($($first),*, $($last),*))
             }
 
             /// Create a new instance where every lane has value `x`.
             #[inline]
-            pub const fn splat(x: $elem) -> $name {
-                $name($({ #[allow(dead_code)] struct $first; x }),*,
-                      $({ #[allow(dead_code)] struct $last; x }),*)
+            pub fn splat(x: $elem) -> $name {
+                $name(SS::$name::splat(x))
             }
 
             /// Compare for equality.
             #[inline]
             pub fn eq(self, other: Self) -> $bool {
-                unsafe {simd_eq(self, other)}
+                $bool(self.0.eq(other.0))
             }
             /// Compare for equality.
             #[inline]
             pub fn ne(self, other: Self) -> $bool {
-                unsafe {simd_ne(self, other)}
+                $bool(self.0.ne(other.0))
             }
             /// Compare for equality.
             #[inline]
             pub fn lt(self, other: Self) -> $bool {
-                unsafe {simd_lt(self, other)}
+                $bool(self.0.lt(other.0))
             }
             /// Compare for equality.
             #[inline]
             pub fn le(self, other: Self) -> $bool {
-                unsafe {simd_le(self, other)}
+                $bool(self.0.le(other.0))
             }
             /// Compare for equality.
             #[inline]
             pub fn gt(self, other: Self) -> $bool {
-                unsafe {simd_gt(self, other)}
+                $bool(self.0.gt(other.0))
             }
             /// Compare for equality.
             #[inline]
             pub fn ge(self, other: Self) -> $bool {
-                unsafe {simd_ge(self, other)}
+                $bool(self.0.ge(other.0))
             }
 
             /// Extract the value of the `idx`th lane of `self`.
@@ -77,8 +67,7 @@ macro_rules! basic_impls {
             /// `extract` will panic if `idx` is out of bounds.
             #[inline]
             pub fn extract(self, idx: u32) -> $elem {
-                assert!(idx < $length);
-                unsafe {simd_extract(self, idx)}
+                self.0.extract(idx)
             }
             /// Return a new vector where the `idx`th lane is replaced
             /// by `elem`.
@@ -88,8 +77,7 @@ macro_rules! basic_impls {
             /// `replace` will panic if `idx` is out of bounds.
             #[inline]
             pub fn replace(self, idx: u32, elem: $elem) -> Self {
-                assert!(idx < $length);
-                unsafe {simd_insert(self, idx, elem)}
+                $name(self.0.replace(idx, elem))
             }
 
             /// Load a new value from the `idx`th position of `array`.
@@ -107,11 +95,7 @@ macro_rules! basic_impls {
             /// `array`, or if `array[idx..]` is too short.
             #[inline]
             pub fn load(array: &[$elem], idx: usize) -> Self {
-                let data = &array[idx..idx + $length];
-                let loaded = unsafe {
-                    *(data.as_ptr() as *const Unalign<Self>)
-                };
-                loaded.0
+                $name(::SS::$name::load(array, idx))
             }
 
             /// Store the elements of `self` to `array`, starting at
@@ -132,25 +116,36 @@ macro_rules! basic_impls {
             /// `array`, or if `array[idx...]` is too short.
             #[inline]
             pub fn store(self, array: &mut [$elem], idx: usize) {
-                let place = &mut array[idx..idx + $length];
-                unsafe {
-                    *(place.as_mut_ptr() as *mut Unalign<Self>) = Unalign(self)
-                }
+                self.0.store(array, idx);
             }
-        })*
+        }
+
+        impl From<SS::$name> for $name {
+            fn from(x: SS::$name) -> $name {
+                $name(x)
+            }
+        }
+
+        impl From<$name> for SS::$name {
+            fn from(x: $name) -> SS::$name {
+                x.0
+            }
+        }
+
+        )*
     }
 }
 
 basic_impls! {
-    u32x4: u32, bool32ix4, simd_shuffle4, 4, x0, x1 | x2, x3;
-    i32x4: i32, bool32ix4, simd_shuffle4, 4, x0, x1 | x2, x3;
-    f32x4: f32, bool32fx4, simd_shuffle4, 4, x0, x1 | x2, x3;
+    u32x4: u32, bool32ix4, 4, x0, x1 | x2, x3;
+    i32x4: i32, bool32ix4, 4, x0, x1 | x2, x3;
+    f32x4: f32, bool32fx4, 4, x0, x1 | x2, x3;
 
-    u16x8: u16, bool16ix8, simd_shuffle8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
-    i16x8: i16, bool16ix8, simd_shuffle8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
+    u16x8: u16, bool16ix8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
+    i16x8: i16, bool16ix8, 8, x0, x1, x2, x3 | x4, x5, x6, x7;
 
-    u8x16: u8, bool8ix16, simd_shuffle16, 16, x0, x1, x2, x3, x4, x5, x6, x7 | x8, x9, x10, x11, x12, x13, x14, x15;
-    i8x16: i8, bool8ix16, simd_shuffle16, 16, x0, x1, x2, x3, x4, x5, x6, x7 | x8, x9, x10, x11, x12, x13, x14, x15;
+    u8x16: u8, bool8ix16, 16, x0, x1, x2, x3, x4, x5, x6, x7 | x8, x9, x10, x11, x12, x13, x14, x15;
+    i8x16: i8, bool8ix16, 16, x0, x1, x2, x3, x4, x5, x6, x7 | x8, x9, x10, x11, x12, x13, x14, x15;
 }
 
 macro_rules! bool_impls {
@@ -164,33 +159,31 @@ macro_rules! bool_impls {
             /// Convert to integer representation.
             #[inline]
             pub fn to_repr(self) -> $repr {
-                unsafe {mem::transmute(self)}
+                $repr(self.0)
             }
             /// Convert from integer representation.
             #[inline]
             #[inline]
             pub fn from_repr(x: $repr) -> Self {
-                unsafe {mem::transmute(x)}
+                $name(x.0)
             }
 
             /// Create a new instance.
             #[inline]
             pub fn new($($first: bool),*, $($last: bool),*) -> $name {
-                unsafe {
-                    // negate everything together
-                    simd_sub($name::splat(false),
-                             $name($( ($first as $repr_elem) ),*,
-                                   $( ($last as $repr_elem) ),*))
-                }
+                $name(
+                    SS::$repr::splat(0)
+                    -
+                    SS::$repr::new(
+                        $(($first as $repr_elem)),*,
+                        $(($last as $repr_elem)),*))
             }
 
             /// Create a new instance where every lane has value `x`.
-            #[allow(unused_variables)]
             #[inline]
             pub fn splat(x: bool) -> $name {
                 let x = if x {!(0 as $repr_elem)} else {0};
-                $name($({ let $first = (); x}),*,
-                      $({ let $last = (); x}),*)
+                $name(SS::$repr::splat(x))
             }
 
             /// Extract the value of the `idx`th lane of `self`.
@@ -200,8 +193,7 @@ macro_rules! bool_impls {
             /// `extract` will panic if `idx` is out of bounds.
             #[inline]
             pub fn extract(self, idx: u32) -> bool {
-                assert!(idx < $length);
-                unsafe {simd_extract(self.to_repr(), idx) != 0}
+                self.0.extract(idx) != 0
             }
             /// Return a new vector where the `idx`th lane is replaced
             /// by `elem`.
@@ -211,9 +203,8 @@ macro_rules! bool_impls {
             /// `replace` will panic if `idx` is out of bounds.
             #[inline]
             pub fn replace(self, idx: u32, elem: bool) -> Self {
-                assert!(idx < $length);
                 let x = if elem {!(0 as $repr_elem)} else {0};
-                unsafe {Self::from_repr(simd_insert(self.to_repr(), idx, x))}
+                $name(self.0.replace(idx, x))
             }
             /// Select between elements of `then` and `else_`, based on
             /// the corresponding element of `self`.
@@ -264,17 +255,17 @@ macro_rules! bool_impls {
                 pub fn $cvt(self) -> $cvt_to {
                     bitcast(self)
                 }
-                )*
+            )*
         }
           impl ops::Not for $name {
               type Output = Self;
 
               #[inline]
               fn not(self) -> Self {
-                  Self::from_repr($repr::splat(!(0 as $repr_elem)) ^ self.to_repr())
+                  $name(SS::$repr::splat(!(0 as $repr_elem)) ^ self.0)
               }
           }
-          )*
+      )*
     }
 }
 
@@ -295,24 +286,24 @@ impl u32x4 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i32(self) -> i32x4 {
-        unsafe {simd_cast(self)}
+        i32x4(SS::i32x4::from(self.0))
     }
     /// Convert each lane to a 32-bit float.
     #[inline]
     pub fn to_f32(self) -> f32x4 {
-        unsafe {simd_cast(self)}
+        f32x4(self.0.as_f32x4())
     }
 }
 impl i32x4 {
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u32(self) -> u32x4 {
-        unsafe {simd_cast(self)}
+        u32x4(SS::u32x4::from(self.0))
     }
     /// Convert each lane to a 32-bit float.
     #[inline]
     pub fn to_f32(self) -> f32x4 {
-        unsafe {simd_cast(self)}
+        f32x4(self.0.as_f32x4())
     }
 }
 impl f32x4 {
@@ -368,12 +359,12 @@ impl f32x4 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i32(self) -> i32x4 {
-        unsafe {simd_cast(self)}
+        i32x4(self.0.as_i32x4())
     }
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u32(self) -> u32x4 {
-        unsafe {simd_cast(self)}
+        u32x4(self.0.as_u32x4())
     }
 }
 
@@ -381,14 +372,14 @@ impl i16x8 {
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u16(self) -> u16x8 {
-        unsafe {simd_cast(self)}
+        u16x8(self.0.as_u16x8())
     }
 }
 impl u16x8 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i16(self) -> i16x8 {
-        unsafe {simd_cast(self)}
+        i16x8(self.0.as_i16x8())
     }
 }
 
@@ -396,14 +387,14 @@ impl i8x16 {
     /// Convert each lane to an unsigned integer.
     #[inline]
     pub fn to_u8(self) -> u8x16 {
-        unsafe {simd_cast(self)}
+        u8x16(self.0.as_u8x16())
     }
 }
 impl u8x16 {
     /// Convert each lane to a signed integer.
     #[inline]
     pub fn to_i8(self) -> i8x16 {
-        unsafe {simd_cast(self)}
+        i8x16(self.0.as_i8x16())
     }
 }
 
@@ -448,39 +439,39 @@ not_impls! {
 }
 
 macro_rules! operators {
-    ($($trayt: ident ($func: ident, $method: ident): $($ty: ty),*;)*) => {
+    ($($trayt: ident ($method: ident): $($ty: ident),*;)*) => {
         $(
             $(impl ops::$trayt for $ty {
                 type Output = Self;
                 #[inline]
                 fn $method(self, x: Self) -> Self {
-                    unsafe {$func(self, x)}
+                    $ty((self.0).$method(x.0))
                 }
             })*
-                )*
+        )*
     }
 }
 operators! {
-    Add (simd_add, add):
+    Add (add):
         i8x16, u8x16, i16x8, u16x8, i32x4, u32x4,
         f32x4;
-    Sub (simd_sub, sub):
+    Sub (sub):
         i8x16, u8x16, i16x8, u16x8, i32x4, u32x4,
         f32x4;
-    Mul (simd_mul, mul):
+    Mul (mul):
         i8x16, u8x16, i16x8, u16x8, i32x4, u32x4,
         f32x4;
-    Div (simd_div, div): f32x4;
+    Div (div): f32x4;
 
-    BitAnd (simd_and, bitand):
+    BitAnd (bitand):
         i8x16, u8x16, i16x8, u16x8, i32x4, u32x4,
         bool8ix16, bool16ix8, bool32ix4,
         bool32fx4;
-    BitOr (simd_or, bitor):
+    BitOr (bitor):
         i8x16, u8x16, i16x8, u16x8, i32x4, u32x4,
         bool8ix16, bool16ix8, bool32ix4,
         bool32fx4;
-    BitXor (simd_xor, bitxor):
+    BitXor (bitxor):
         i8x16, u8x16, i16x8, u16x8, i32x4, u32x4,
         bool8ix16, bool16ix8, bool32ix4,
         bool32fx4;
@@ -489,21 +480,21 @@ operators! {
 macro_rules! shift_one {
     ($ty: ident, $($by: ident),*) => {
         $(
-        impl ops::Shl<$by> for $ty {
-            type Output = Self;
-            #[inline]
-            fn shl(self, other: $by) -> Self {
-                unsafe { simd_shl(self, $ty::splat(other as <$ty as Simd>::Elem)) }
+            impl ops::Shl<$by> for $ty {
+                type Output = Self;
+                #[inline]
+                fn shl(self, other: $by) -> Self {
+                    $ty(self.0.shl(other))
+                }
             }
-        }
-        impl ops::Shr<$by> for $ty {
-            type Output = Self;
-            #[inline]
-            fn shr(self, other: $by) -> Self {
-                unsafe {simd_shr(self, $ty::splat(other as <$ty as Simd>::Elem))}
+            impl ops::Shr<$by> for $ty {
+                type Output = Self;
+                #[inline]
+                fn shr(self, other: $by) -> Self {
+                    $ty(self.0.shr(other))
+                }
             }
-        }
-            )*
+        )*
     }
 }
 

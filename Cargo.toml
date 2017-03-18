@@ -17,6 +17,7 @@ CPUs, as well as raw interfaces to platform-specific instructions.
 [dependencies]
 serde = { version = "0.8", optional = true }
 serde_derive = { version = "0.8", optional = true }
+stdsimd = { version = "*", path = "/home/andrew/rust/stdsimd" }
 
 [dev-dependencies]
 cfg-if = "0.1"

@@ -1,6 +1,6 @@
 //! `simd` offers a basic interface to the SIMD functionality of CPUs.
 
-#![feature(cfg_target_feature, repr_simd, platform_intrinsics, const_fn)]
+#![feature(cfg_target_feature)]
 #![allow(non_camel_case_types)]
 
 #[cfg(feature = "with-serde")]
@@ -8,6 +8,9 @@ extern crate serde;
 #[cfg(feature = "with-serde")]
 #[macro_use]
 extern crate serde_derive;
+extern crate stdsimd;
+
+use stdsimd as SS;
 
 /// Boolean type for 8-bit integers.
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
@@ -60,94 +63,72 @@ pub unsafe trait Simd {
 }
 
 /// A SIMD vector of 4 `u32`s.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct u32x4(u32, u32, u32, u32);
+pub struct u32x4(SS::u32x4);
 /// A SIMD vector of 4 `i32`s.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct i32x4(i32, i32, i32, i32);
+pub struct i32x4(SS::i32x4);
 /// A SIMD vector of 4 `f32`s.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct f32x4(f32, f32, f32, f32);
+pub struct f32x4(SS::f32x4);
 /// A SIMD boolean vector for length-4 vectors of 32-bit integers.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool32ix4(i32, i32, i32, i32);
+pub struct bool32ix4(SS::i32x4);
 /// A SIMD boolean vector for length-4 vectors of 32-bit floats.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool32fx4(i32, i32, i32, i32);
+pub struct bool32fx4(SS::i32x4);
 
 #[allow(dead_code)]
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-struct u32x2(u32, u32);
+struct u32x2(SS::u32x2);
 #[allow(dead_code)]
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-struct i32x2(i32, i32);
+struct i32x2(SS::i32x2);
 #[allow(dead_code)]
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-struct f32x2(f32, f32);
+struct f32x2(SS::f32x2);
 #[allow(dead_code)]
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-struct bool32ix2(i32, i32);
+struct bool32ix2(SS::i32x2);
 #[allow(dead_code)]
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-struct bool32fx2(i32, i32);
+struct bool32fx2(SS::i32x2);
 
 /// A SIMD vector of 8 `u16`s.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct u16x8(u16, u16, u16, u16,
-                 u16, u16, u16, u16);
+pub struct u16x8(SS::u16x8);
 /// A SIMD vector of 8 `i16`s.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct i16x8(i16, i16, i16, i16,
-                 i16, i16, i16, i16);
+pub struct i16x8(SS::i16x8);
 /// A SIMD boolean vector for length-8 vectors of 16-bit integers.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool16ix8(i16, i16, i16, i16,
-                     i16, i16, i16, i16);
+pub struct bool16ix8(SS::i16x8);
 
 /// A SIMD vector of 16 `u8`s.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct u8x16(u8, u8, u8, u8, u8, u8, u8, u8,
-                 u8, u8, u8, u8, u8, u8, u8, u8);
+pub struct u8x16(SS::u8x16);
 /// A SIMD vector of 16 `i8`s.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct i8x16(i8, i8, i8, i8, i8, i8, i8, i8,
-                 i8, i8, i8, i8, i8, i8, i8, i8);
+pub struct i8x16(SS::i8x16);
 /// A SIMD boolean vector for length-16 vectors of 8-bit integers.
-#[repr(simd)]
 #[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy)]
-pub struct bool8ix16(i8, i8, i8, i8, i8, i8, i8, i8,
-                     i8, i8, i8, i8, i8, i8, i8, i8);
+pub struct bool8ix16(SS::i8x16);
 
 
 macro_rules! simd {
@@ -177,35 +158,6 @@ fn bitcast<T: Simd, U: Simd>(x: T) -> U {
     unsafe {std::mem::transmute_copy(&x)}
 }
 
-#[allow(dead_code)]
-extern "platform-intrinsic" {
-    fn simd_eq<T: Simd<Bool = U>, U>(x: T, y: T) -> U;
-    fn simd_ne<T: Simd<Bool = U>, U>(x: T, y: T) -> U;
-    fn simd_lt<T: Simd<Bool = U>, U>(x: T, y: T) -> U;
-    fn simd_le<T: Simd<Bool = U>, U>(x: T, y: T) -> U;
-    fn simd_gt<T: Simd<Bool = U>, U>(x: T, y: T) -> U;
-    fn simd_ge<T: Simd<Bool = U>, U>(x: T, y: T) -> U;
-
-    fn simd_shuffle2<T: Simd, U: Simd<Elem = T::Elem>>(x: T, y: T, idx: [u32; 2]) -> U;
-    fn simd_shuffle4<T: Simd, U: Simd<Elem = T::Elem>>(x: T, y: T, idx: [u32; 4]) -> U;
-    fn simd_shuffle8<T: Simd, U: Simd<Elem = T::Elem>>(x: T, y: T, idx: [u32; 8]) -> U;
-    fn simd_shuffle16<T: Simd, U: Simd<Elem = T::Elem>>(x: T, y: T, idx: [u32; 16]) -> U;
-
-    fn simd_insert<T: Simd<Elem = U>, U>(x: T, idx: u32, val: U) -> T;
-    fn simd_extract<T: Simd<Elem = U>, U>(x: T, idx: u32) -> U;
-
-    fn simd_cast<T: Simd, U: Simd>(x: T) -> U;
-
-    fn simd_add<T: Simd>(x: T, y: T) -> T;
-    fn simd_sub<T: Simd>(x: T, y: T) -> T;
-    fn simd_mul<T: Simd>(x: T, y: T) -> T;
-    fn simd_div<T: Simd>(x: T, y: T) -> T;
-    fn simd_shl<T: Simd>(x: T, y: T) -> T;
-    fn simd_shr<T: Simd>(x: T, y: T) -> T;
-    fn simd_and<T: Simd>(x: T, y: T) -> T;
-    fn simd_or<T: Simd>(x: T, y: T) -> T;
-    fn simd_xor<T: Simd>(x: T, y: T) -> T;
-}
 #[repr(packed)]
 #[derive(Debug, Copy, Clone)]
 struct Unalign<T>(T);
